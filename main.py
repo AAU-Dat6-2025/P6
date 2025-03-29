@@ -10,7 +10,8 @@ import torch
 
 from RecBole.recbole.config.configurator import Config
 from RecBole.recbole.data.utils import create_dataset, data_preparation
-from RecBole.recbole.quick_start.quick_start import load_data_and_model, run_recbole, run_recboles
+from RecBole.recbole.model.general_recommender.bpr_zipf import BPRZipf
+from RecBole.recbole.quick_start.quick_start import run_recbole, run_recboles
 from RecBole.recbole.utils import get_trainer, set_color
 from RecBole.recbole.utils.utils import init_seed, get_model
 
@@ -20,7 +21,8 @@ from RecBole.recbole.utils.utils import init_seed, get_model
 model_folder = "./saved_models/"
 metrics_results_folder = "./metrics_results/"
 
-methods =  ["BPR", "LightGCN", "NGCF", "MultiVAE", "Random"]
+methods =  ["BPR", "LightGCN", "NGCF", "MultiVAE", "Random", "BPRZipf"]
+
 datasets = ["ml-100k", "ml-1m", "ml-20m", "gowalla-merged", "steam-merged"]
 config_dictionary = {
     "metrics": ["Recall", "MRR", "NDCG", "Precision", "Hit", "Exposure", "ShannonEntropy", "Novelty", "RecommendedGraph"]
@@ -52,7 +54,7 @@ class RecboleRunner:
         self.config_dict = config_dict if config_dict is not None else {}
         self.config_file = config_file_list if config_file_list is not None else []
         self.eval_config = eval_config_file_list if eval_config_file_list is not None else []
-        self.config = Config(model=model_name, dataset=dataset_name, config_dict=self.config_dict, config_file_list=self.config_file)
+        self.config = Config(model=self.get_model(), dataset=dataset_name, config_dict=self.config_dict, config_file_list=self.config_file)
         self.gpus = self.get_available_cuda_gpus()
         self.retrain = retrain
 
@@ -83,13 +85,21 @@ class RecboleRunner:
         kwargs = {"config_dict": self.config_dict, "queue": queue}
         mp.spawn(
             run_recboles,
-            args=(self.model_name, self.dataset_name, config_file, kwargs),
+            args=(self.get_model(), self.dataset_name, config_file, kwargs),
             nprocs=self.config_dict["nproc"],
             join=True,
         )
 
         res = None if queue.empty() else queue.get()
         return res
+
+    def get_model(self):
+        if self.model_name == "BPRZipf":
+            return BPRZipf
+        elif self.model_name in methods:
+            return self.model_name
+        else:
+            raise NotImplementedError(f"Model {self.model_name} not implemented")
 
     def run_and_evaluate_model(self) -> Dict[str, Any]:
         """
@@ -99,10 +109,11 @@ class RecboleRunner:
         if self.model_name == "Random":
             return self.evaluate_pre_trained_model("")
 
+
         trained_model = self.get_trained_model_path()
         if trained_model is None or self.retrain:
             if len(self.gpus) == 1:
-                return run_recbole(self.model_name, self.dataset_name, config_file, self.config_dict)
+                return run_recbole(model=self.get_model(), dataset=self.dataset_name, config_file_list=self.config_file, config_dict=self.config_dict)
             else:
                 return self.run_and_train_model_multi_gpu()
 
@@ -144,7 +155,7 @@ class RecboleRunner:
         Get and initialise the Random model
         :return: ``Tuple[Config, torch.nn.Module, Dataset, Data, Data, Data]`` The configuration, model, dataset, train data, validation data and test data
         """
-        config = Config(model=self.model_name, dataset=self.dataset_name, config_dict=self.config_dict, config_file_list=config_file_list)
+        config = Config(model=self.get_model(), dataset=self.dataset_name, config_dict=self.config_dict, config_file_list=config_file_list)
         init_seed(config["seed"], config["reproducibility"])
 
         dataset = create_dataset(config)
