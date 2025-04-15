@@ -15,6 +15,7 @@ class MMRReranker:
         topk_scores, topk_indices = torch.topk(scores, self.n_items, dim=1)
 
         similarity_matrix = self.get_cosine_similarity(all_item_e)
+        print("similarity",similarity_matrix)
 
         all_mmr_indices = []
 
@@ -36,15 +37,13 @@ class MMRReranker:
         full_list = topk_indices.tolist()
 
         # Pick first item (highest score)
-        first_item = full_list[0]
+        first_item = full_list.pop(0)
         selected_items.append(first_item)
-        full_list = full_list[1:]
 
         # Create dict for item and score of the item
         item_to_score = {item.item(): topk_scores[id].item() for id, item in enumerate(topk_indices)}
 
         while len(selected_items) < self.top_k:
-
             # Calculate relevance (score)
             relevance = torch.tensor([item_to_score[item] for item in full_list], device=all_item_e.device)
 
@@ -69,19 +68,9 @@ class MMRReranker:
             selected_items.append(next_item)
             full_list.remove(next_item)
 
-        combined_list = selected_items + full_list
-
-        # Now correctly populate reranked_scores
-        reranked_scores = torch.full_like(topk_scores, -float('inf'))
-        for i, item in enumerate(combined_list):
-            reranked_scores[i] = topk_scores[i]  # Set the scores of selected items
-        print(reranked_scores)
-        return reranked_scores
+        return selected_items
 
     def get_cosine_similarity(self, all_item_e):
-        # Normalize the embeddings
         norm_item_e = F.normalize(all_item_e, p=2, dim=1)
-        # Compute cosine similarity
-        similarity_matrix = torch.matmul(norm_item_e, norm_item_e.T)
+        similarity_matrix = torch.matmul(norm_item_e, norm_item_e.transpose(0, 1))
         return similarity_matrix
-

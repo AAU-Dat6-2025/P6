@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from numpy.ma.core import append, argmax
+import os
+import pandas as pd
 from recbole.model.abstract_recommender import GeneralRecommender
 from recbole.model.init import xavier_normal_initialization
 from recbole.model.loss import BPRLoss
@@ -64,11 +66,22 @@ class BPRMMRSim(GeneralRecommender):
         score = torch.matmul(user_e, all_item_e.transpose(0, 1))
         print(score.view(-1))
 
-        reranker = MMRReranker(lambda_mmr=0.5, top_k=20, n_items=500)
-        reranked_scores = reranker.rerank(user_e, all_item_e, score)  # List of tensors, one per user
+        reranker = MMRReranker(lambda_mmr=0.5, top_k=10, n_items=300)
+        reranked_scores = reranker.rerank(user_e, all_item_e, score)
 
         for user_id, reranked in enumerate(reranked_scores):
             for rank, item_id in enumerate(reranked):
-                score[user_id, item_id] += 1
+                score[user_id, item_id] += 100
+
+        print("score:",score)
+
+        score_cpu = score.detach().cpu().numpy()
+
+        # Create a pandas DataFrame
+        df = pd.DataFrame(score_cpu)
+        csv_path = os.path.join(os.getcwd(), "mmr_boosted_scores.csv")
+        df.to_csv(csv_path, index_label="user_id")
+
+        print(f"Score tensor saved to: {csv_path}")
 
         return score.view(-1)
