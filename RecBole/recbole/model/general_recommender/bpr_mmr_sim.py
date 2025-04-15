@@ -67,11 +67,8 @@ class BPRMMRSim(GeneralRecommender):
         reranker = MMRReranker(lambda_mmr=0.5, top_k=20, n_items=500)
         reranked_scores = reranker.rerank(user_e, all_item_e, score)  # List of tensors, one per user
 
-        updated_score = score.clone()
+        for user_id, reranked in enumerate(reranked_scores):
+            for rank, item_id in enumerate(reranked):
+                score[user_id, item_id] += 1
 
-        # Replace top-500 scores for each user with reranked ones
-        for i, user_scores in enumerate(reranked_scores):
-            updated_score[i, :user_scores.size(0)] = user_scores
-
-
-        return updated_score
+        return score.view(-1)

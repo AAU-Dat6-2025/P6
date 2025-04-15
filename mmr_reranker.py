@@ -75,7 +75,7 @@ class MMRReranker:
         reranked_scores = torch.full_like(topk_scores, -float('inf'))
         for i, item in enumerate(combined_list):
             reranked_scores[i] = topk_scores[i]  # Set the scores of selected items
-
+        print(reranked_scores)
         return reranked_scores
 
     def get_cosine_similarity(self, all_item_e):
