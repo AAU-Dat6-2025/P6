@@ -75,13 +75,4 @@ class BPRMMRSim(GeneralRecommender):
 
         print("score:",score)
 
-        score_cpu = score.detach().cpu().numpy()
-
-        # Create a pandas DataFrame
-        df = pd.DataFrame(score_cpu)
-        csv_path = os.path.join(os.getcwd(), "mmr_boosted_scores.csv")
-        df.to_csv(csv_path, index_label="user_id")
-
-        print(f"Score tensor saved to: {csv_path}")
-
         return score.view(-1)
