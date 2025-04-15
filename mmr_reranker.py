@@ -13,8 +13,6 @@ class MMRReranker:
         Perform the MMR reranking based on relevance (score) and diversity (similarity).
         """
         topk_scores, topk_indices = torch.topk(scores, self.n_items, dim=1)
-        print("topk_scores shape:", topk_scores.shape)
-        print("topk_indices shape:", topk_indices.shape)
 
         similarity_matrix = self.get_cosine_similarity(all_item_e)
 
@@ -31,27 +29,29 @@ class MMRReranker:
             )
             all_mmr_indices.append(mmr_topk)
 
-        return torch.tensor(all_mmr_indices)
+        return all_mmr_indices
 
     def compute_mmr(self, similarity_matrix, all_item_e, topk_scores, topk_indices):
         selected_items = []
-        remaining_items = topk_indices.tolist()
+        full_list = topk_indices.tolist()
 
         # Pick first item (highest score)
-        first_item = remaining_items.pop(0)
+        first_item = full_list[0]
         selected_items.append(first_item)
+        full_list = full_list[1:]
 
         # Create dict for item and score of the item
         item_to_score = {item.item(): topk_scores[id].item() for id, item in enumerate(topk_indices)}
 
-        for i in range(1, self.top_k):
+        while len(selected_items) < self.top_k:
+
             # Calculate relevance (score)
-            relevance = torch.tensor([item_to_score[item] for item in remaining_items], device=all_item_e.device)
+            relevance = torch.tensor([item_to_score[item] for item in full_list], device=all_item_e.device)
 
             # List to store similarity scores for each remaining item with selected items
             similarity_scores = []
 
-            for id, item in enumerate(remaining_items):
+            for id, item in enumerate(full_list):
                 # Get the similarity between the current remaining item and all selected items
                 selected_similarity = similarity_matrix[item, selected_items].sum()
                 similarity_scores.append(selected_similarity)
@@ -63,13 +63,20 @@ class MMRReranker:
 
             # Select the next item with the highest MMR score
             next_item_index = torch.argmax(mmr_scores).item()
-            next_item = remaining_items[next_item_index]
+            next_item = full_list[next_item_index]
 
             # Add the selected item to the list and remove from remaining
             selected_items.append(next_item)
-            remaining_items.remove(next_item)
+            full_list.remove(next_item)
 
-        return selected_items
+        combined_list = selected_items + full_list
+
+        # Now correctly populate reranked_scores
+        reranked_scores = torch.full_like(topk_scores, -float('inf'))
+        for i, item in enumerate(combined_list):
+            reranked_scores[i] = topk_scores[i]  # Set the scores of selected items
+
+        return reranked_scores
 
     def get_cosine_similarity(self, all_item_e):
         # Normalize the embeddings
