@@ -1,3 +1,6 @@
+import math
+import operator
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -14,8 +17,7 @@ class MMRReranker:
         """
         topk_scores, topk_indices = torch.topk(scores, self.n_items, dim=1)
 
-        similarity_matrix = self.get_cosine_similarity(all_item_e)
-        print("similarity",similarity_matrix)
+        similarity_matrix = self.get_custom_similarity(all_item_e)
 
         all_mmr_indices = []
 
@@ -74,3 +76,34 @@ class MMRReranker:
         norm_item_e = F.normalize(all_item_e, p=2, dim=1)
         similarity_matrix = torch.matmul(norm_item_e, norm_item_e.transpose(0, 1))
         return similarity_matrix
+
+    def get_cosine_similarity(self, all_item_e):
+        norm_item_e = F.normalize(all_item_e, p=2, dim=1)
+        similarity_matrix = torch.matmul(norm_item_e, norm_item_e.transpose(0, 1))
+        return similarity_matrix
+
+    def get_euclidean_distance(self, all_item_e):
+        dist = torch.cdist(all_item_e, all_item_e,p=2)
+        similarity_matrix = 1 / (1 + dist)
+        return similarity_matrix
+
+    def get_similarity(self, all_item_e):
+        dist = torch.cdist(all_item_e, all_item_e, p=1)
+        similarity_matrix = 1 / (1 + dist)
+        return similarity_matrix
+
+    def get_custom_similarity(self, all_item_e):
+        # Calculate cosine similarity (as you did before)
+        norm_item_e = F.normalize(all_item_e, p=2, dim=1)
+        cosine_similarity_matrix = torch.matmul(norm_item_e, norm_item_e.transpose(0, 1))
+
+         # Calculate Euclidean distance (or you could apply other similarity measures)
+        squared_diff = torch.sum((all_item_e.unsqueeze(1) - all_item_e.unsqueeze(0))**2, dim=-1)
+        euclidean_similarity_matrix = 1 / (1 + squared_diff)  # You can adjust the range here
+
+        # Combine both cosine and Euclidean similarities for a hybrid measure
+        combined_similarity_matrix = 0.5 * cosine_similarity_matrix + 0.5 * euclidean_similarity_matrix
+
+        return combined_similarity_matrix
+
+

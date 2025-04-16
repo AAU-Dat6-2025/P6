@@ -11,11 +11,11 @@ from recbole.utils import InputType
 from mmr_reranker import MMRReranker
 
 
-class BPRMMRSim(GeneralRecommender):
+class BPRMMR(GeneralRecommender):
     input_type = InputType.PAIRWISE
 
     def __init__(self, config, dataset):
-        super(BPRMMRSim, self).__init__(config, dataset)
+        super(BPRMMR, self).__init__(config, dataset)
 
         # load parameters info
         self.embedding_size = config["embedding_size"]
@@ -63,10 +63,10 @@ class BPRMMRSim(GeneralRecommender):
         user = interaction[self.USER_ID]
         user_e = self.get_user_embedding(user)
         all_item_e = self.item_embedding.weight
+        print(all_item_e.shape)
         score = torch.matmul(user_e, all_item_e.transpose(0, 1))
-        print(score.view(-1))
 
-        reranker = MMRReranker(lambda_mmr=0.5, top_k=10, n_items=300)
+        reranker = MMRReranker(lambda_mmr=0.4, top_k=10, n_items=200)
         reranked_scores = reranker.rerank(user_e, all_item_e, score)
 
         for user_id, reranked in enumerate(reranked_scores):
