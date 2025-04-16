@@ -11,7 +11,7 @@ import torch
 from RecBole.recbole.config.configurator import Config
 from RecBole.recbole.data.utils import create_dataset, data_preparation
 from RecBole.recbole.model.general_recommender.bpr_zipf import BPRZipf
-from RecBole.recbole.model.general_recommender.bpr_mmr_sim import BPRMMRSim
+from RecBole.recbole.model.general_recommender.bpr_mmr import BPRMMR
 from RecBole.recbole.utils import get_trainer, set_color
 from RecBole.recbole.utils.utils import init_seed, get_model, get_environment
 from RecBole.recbole.model.general_recommender.lightgcn_zipf import LightGCNZipf
@@ -27,7 +27,7 @@ from sampler import InteractionSampler
 model_folder = "./saved_models/"
 metrics_results_folder = "./metrics_results/"
 
-methods = {"BPR": None, "LightGCN": None, "NGCF": None, "MultiVAE": None, "Random": None, "BPRZipf": BPRZipf, "BPRMMRSim": BPRMMRSim, "LightGCNZipf": LightGCNZipf, "NGCFZipf": NGCFZipf, "MultiVAEZipf": MultiVAEZipf }
+methods = {"BPR": None, "LightGCN": None, "NGCF": None, "MultiVAE": None, "Random": None, "BPRZipf": BPRZipf, "BPRMMR": BPRMMR, "LightGCNZipf": LightGCNZipf, "NGCFZipf": NGCFZipf, "MultiVAEZipf": MultiVAEZipf }
 
 datasets = ["ml-100k", "ml-1m", "ml-20m", "gowalla-merged", "steam-merged"]
 config_dictionary = {
