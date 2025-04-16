@@ -66,13 +66,11 @@ class BPRMMR(GeneralRecommender):
         print(all_item_e.shape)
         score = torch.matmul(user_e, all_item_e.transpose(0, 1))
 
-        reranker = MMRReranker(lambda_mmr=0.4, top_k=10, n_items=200)
+        reranker = MMRReranker(lambda_mmr=0.2, top_k=10, n_items=200)
         reranked_scores = reranker.rerank(user_e, all_item_e, score)
 
         for user_id, reranked in enumerate(reranked_scores):
             for rank, item_id in enumerate(reranked):
                 score[user_id, item_id] += 100
-
-        print("score:",score)
 
         return score.view(-1)
