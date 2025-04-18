@@ -4,9 +4,12 @@ import operator
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import pandas as pd
+from sklearn.metrics.pairwise import cosine_similarity
+
 
 class MMRReranker:
-    def __init__(self, lambda_mmr=0.5,top_k=20,n_items=500):
+    def __init__(self,lambda_mmr=0.5, top_k=20,n_items=500):
         self.lambda_mmr = lambda_mmr
         self.top_k = top_k
         self.n_items = n_items
@@ -76,15 +79,3 @@ class MMRReranker:
         norm_item_e = F.normalize(all_item_e, p=2, dim=1)
         similarity_matrix = torch.matmul(norm_item_e, norm_item_e.transpose(0, 1))
         return similarity_matrix
-
-    def get_euclidean_distance(self, all_item_e):
-        dist = torch.cdist(all_item_e, all_item_e,p=2)
-        similarity_matrix = 1 / (1 + dist)
-        return similarity_matrix
-
-    def get_similarity(self, all_item_e):
-        dist = torch.cdist(all_item_e, all_item_e, p=1)
-        similarity_matrix = 1 / (1 + dist)
-        return similarity_matrix
-
-
